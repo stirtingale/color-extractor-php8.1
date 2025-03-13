@@ -2,20 +2,18 @@
 
 namespace League\ColorExtractor;
 
-
-
 class Palette implements \Countable, \IteratorAggregate
 {
     /** 
      * @var array
      */
     protected $colors = [];
-    
+
     /** 
      * @return int
      */
     #[\ReturnTypeWillChange]
-    public function count(): int
+    public function count()
     {
         return count($this->colors);
     }
@@ -23,11 +21,12 @@ class Palette implements \Countable, \IteratorAggregate
     /** 
      * @return \Traversable
      */
-    public function getIterator(): \Traversable
+    #[\ReturnTypeWillChange]
+    public function getIterator()
     {
         return new \ArrayIterator($this->colors);
     }
-    
+
     /** 
      * @return int
      */
@@ -77,7 +76,7 @@ class Palette implements \Countable, \IteratorAggregate
      */
     public static function fromUrl($url, $backgroundColor = null)
     {
-        if (!function_exists('curl_init')){
+        if (!function_exists('curl_init')) {
             return self::fromContents(file_get_contents($url));
         }
 
@@ -104,7 +103,8 @@ class Palette implements \Countable, \IteratorAggregate
      *
      * @return Palette
      */
-    public static function fromContents($contents, $backgroundColor = null) {
+    public static function fromContents($contents, $backgroundColor = null)
+    {
         $image = imagecreatefromstring($contents);
         $palette = self::fromGD($image, $backgroundColor);
         imagedestroy($image);
@@ -120,11 +120,16 @@ class Palette implements \Countable, \IteratorAggregate
      *
      * @throws \InvalidArgumentException
      */
-    public static function fromGD($image, ?int $backgroundColor = null)
+    public static function fromGD($image, $backgroundColor = null)
     {
-        if (!$image instanceof \GDImage && (!is_resource($image) || get_resource_type($image) !== 'gd')) {
-            throw new \InvalidArgumentException('Image must be a gd resource');
+        // Check for both GDImage object (PHP 8.0+) and resource (PHP 7.x)
+        if (
+            (!class_exists('\GDImage') || !$image instanceof \GDImage) &&
+            (!is_resource($image) || get_resource_type($image) !== 'gd')
+        ) {
+            throw new \InvalidArgumentException('Image must be a gd resource or GDImage object');
         }
+
         if ($backgroundColor !== null && (!is_numeric($backgroundColor) || $backgroundColor < 0 || $backgroundColor > 16777215)) {
             throw new \InvalidArgumentException(sprintf('"%s" does not represent a valid color', $backgroundColor));
         }
@@ -146,9 +151,9 @@ class Palette implements \Countable, \IteratorAggregate
                 if ($areColorsIndexed) {
                     $colorComponents = imagecolorsforindex($image, $color);
                     $color = ($colorComponents['alpha'] * 16777216) +
-                             ($colorComponents['red'] * 65536) +
-                             ($colorComponents['green'] * 256) +
-                             ($colorComponents['blue']);
+                        ($colorComponents['red'] * 65536) +
+                        ($colorComponents['green'] * 256) +
+                        ($colorComponents['blue']);
                 }
 
                 if ($alpha = $color >> 24) {
@@ -158,8 +163,8 @@ class Palette implements \Countable, \IteratorAggregate
 
                     $alpha /= 127;
                     $color = (int) (($color >> 16 & 0xFF) * (1 - $alpha) + $backgroundColorRed * $alpha) * 65536 +
-                             (int) (($color >> 8 & 0xFF) * (1 - $alpha) + $backgroundColorGreen * $alpha) * 256 +
-                             (int) (($color & 0xFF) * (1 - $alpha) + $backgroundColorBlue * $alpha);
+                        (int) (($color >> 8 & 0xFF) * (1 - $alpha) + $backgroundColorGreen * $alpha) * 256 +
+                        (int) (($color & 0xFF) * (1 - $alpha) + $backgroundColorBlue * $alpha);
                 }
 
                 isset($palette->colors[$color]) ?
